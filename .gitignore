@@ -1,0 +1,21 @@
+
+# Altium designer///////
+*.SchDocPreview
+*.PcbDocPreview
+*.PrjPcbStructure
+*.OutJob
+*.PrjPcbStructure
+*.CMP
+*.CMPPreview
+*.htm
+*.html
+*.pdf
+*.txtPreview
+*.o
+
+
+#文件夹
+/Project Logs for 一体化
+/history
+/Project Outputs for 一体化
+
