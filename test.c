@@ -4,8 +4,16 @@
 
 LRESULT CALLBACK WndProc(HWND,UINT,WPARAM,LPARAM);
 
+///////////////////////////////////////在这里规定一些固定的尺寸，比如窗口、滚动条，在程序开始时赋值，供以后程序使用
+
 int Screen_Width=0;    //屏幕宽度
 int Screen_Height=0;	//屏幕高度
+
+int Window_Width = 0;   ///窗口的宽度
+int Window_Height = 0;  ///窗口的高度
+
+int ScrollBar_Width = 0;  ///滚动条的宽度
+int ScrollBar_Height = 0;  ///滚动条的高度
 
 LOGBRUSH logbrush;   ///定义逻辑画刷
 HBRUSH	 hBrush;	///画刷句柄
@@ -43,16 +51,22 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,in
 		return 0;
 	}
 
-	Screen_Width = GetSystemMetrics(SM_CXSCREEN);
+	Screen_Width = GetSystemMetrics(SM_CXSCREEN);		///当前屏幕尺寸
 	Screen_Height = GetSystemMetrics(SM_CYSCREEN);
+
+	Window_Width = Screen_Width / 2;				///窗口的尺寸
+	Window_Height = Screen_Height / 2;
+
+	ScrollBar_Width = Window_Width / 5;   ///滚动条的尺寸
+	ScrollBar_Height = Window_Height / 20;
 
 	hwnd = CreateWindow( szAppName,
 						 TEXT("The Hello Program"),
 						 WS_CAPTION|WS_SYSMENU|WS_VSCROLL,
-						 Screen_Width/4,
-						 Screen_Height/4,
-						 Screen_Width/2,
-						 Screen_Height/2,
+						 (Screen_Width - Window_Width) / 2,
+						 (Screen_Height - Window_Height) / 2,
+						 Window_Width,
+						 Window_Height,
 						 NULL,
 						 NULL,
 						 hInstance,
@@ -74,7 +88,8 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 	HDC				hdc;
 	PAINTSTRUCT		ps;
 	RECT			rect;
-
+	HINSTANCE		hInstance;
+	
 	static int vPos=0;
 	char szScrollPos[100]; 
 
@@ -83,16 +98,18 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 		case WM_CREATE:
 			SetScrollRange(hwnd,SB_VERT,0,1000,TRUE);
 
+			hInstance = (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE);
+
 			hwndScroll = CreateWindow(TEXT("scrollbar"),
 									  "Scroll",
-									  WS_CHILD|SBS_VERT|WS_VISIBLE,
-									  0,
-									  0,
-									  0,
-									  0,
+									  WS_CHILD|SBS_HORZ|WS_VISIBLE,
+									  100,
+									  100,
+									  ScrollBar_Width,
+									  ScrollBar_Height,
 									  hwnd,
 									  (HMENU)10,
-									  NULL,
+									  hInstance,
 									  NULL
 					
 			);
