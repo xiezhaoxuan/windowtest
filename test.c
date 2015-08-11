@@ -1,6 +1,7 @@
 #include "windows.h"
 #include "stdio.h"
 #include "string.h"
+#include "conio.h"
 
 LRESULT CALLBACK WndProc(HWND,UINT,WPARAM,LPARAM);
 
@@ -18,6 +19,8 @@ int ScrollBar_Height = 0;  ///滚动条的高度
 LOGBRUSH logbrush;   ///定义逻辑画刷
 HBRUSH	 hBrush;	///画刷句柄
 
+WNDPROC wndprocScroll;
+
 static HWND 				hwndScroll;
 
 int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,int iCmdShow)
@@ -30,6 +33,12 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,in
 	logbrush.lbStyle		=	BS_SOLID;				///保护色画刷
 	logbrush.lbColor		=	RGB(204,232,207);
 	//logbrush.lbHatch		=	NULL;
+
+	
+	AllocConsole();    /////新建一个控制台窗口
+	freopen("CONOUT$","w",stdout);
+	
+	printf("程序开始运行。。。\n");
 
 	hBrush	=	CreateBrushIndirect(&logbrush);
 
@@ -50,6 +59,7 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,in
 			szAppName,MB_ICONERROR);
 		return 0;
 	}
+	
 
 	Screen_Width = GetSystemMetrics(SM_CXSCREEN);		///当前屏幕尺寸
 	Screen_Height = GetSystemMetrics(SM_CYSCREEN);
@@ -110,9 +120,10 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 									  hwnd,
 									  (HMENU)10,
 									  hInstance,
-									  NULL
-					
-			);
+									  NULL);
+			SetScrollRange(hwndScroll,SB_CTL,0,1000,TRUE);
+			
+			printf("创建了一个水平滚动条控件\n");
 		return 0;
 
 		case WM_PAINT:
@@ -146,7 +157,49 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 			
 		return 0;
 
+		case WM_HSCROLL:    ////水平滚动条
+			printf("水平滚动条控件有动作\n");
+			switch(LOWORD(wParam))
+			{
+				case SB_THUMBTRACK:	///拖动
+					vPos = HIWORD(wParam);
+					printf("水平滚动条控件位置发生改变，新位置为:%i\n",vPos);
+				break;
+
+				case SB_LINERIGHT:  ///右移一个
+					vPos = GetScrollPos(hwndScroll,SB_CTL)+1;
+					printf("右移，新位置为:%i\n",vPos);
+				break;
+
+				case SB_LINELEFT:  ///左移一个
+					vPos = GetScrollPos(hwndScroll,SB_CTL)-1;
+					printf("左移，新位置为:%i\n",vPos);
+				break;
+
+				case SB_PAGERIGHT:  ///右移一段
+					vPos = GetScrollPos(hwndScroll,SB_CTL)+10;
+					printf("右移一段，新位置为:%i\n",vPos);
+				break;
+
+				case SB_PAGELEFT:  ///左移一段
+					vPos = GetScrollPos(hwndScroll,SB_CTL)-10;
+					printf("左移一段，新位置为:%i\n",vPos);
+				break;
+				
+				default:
+
+				break;
+			}
+			if(vPos != GetScrollPos(hwndScroll,SB_CTL))
+			{
+				printf("水平滚动条控件更新位置\n");
+				SetScrollPos(hwndScroll,SB_CTL,vPos,TRUE);
+				InvalidateRect(hwnd,NULL,TRUE);
+			}
+		return 0;
+
 		case WM_DESTROY:
+			FreeConsole();    /////新建一个控制台窗口
 			PostQuitMessage(0);
 		return 0;
 	}
