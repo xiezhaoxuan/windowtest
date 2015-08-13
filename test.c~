@@ -16,20 +16,12 @@ int Window_Height = 0;  ///窗口的高度
 int ScrollBar_Width = 0;  ///滚动条的宽度
 int ScrollBar_Height = 0;  ///滚动条的高度
 
-int Grid_Width=0;   ///128*32的网格的宽度
-
 LOGBRUSH logbrush;   ///定义逻辑画刷
 HBRUSH	 hBrush;	///画刷句柄
 
 WNDPROC wndprocScroll;
 
 static HWND 				hwndScroll;
-
-//////////////////////在当前坐标位置填充一个正方形，尺寸为网格尺寸，可以选择矩形的颜色
-void Paint_GridRectangle(HDC hdc,int x,int y,int Color)
-{
-	
-}
 
 ///////////////////在界面上半部分画出128*32的网格，供以后使用
 void Paint_Grid(HDC hdc)
@@ -95,8 +87,6 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,in
 
 	Window_Width = Screen_Width / 2;				///窗口的尺寸
 	Window_Height = Screen_Height / 2;
-	
-	Grid_Width = Window_Width/128;     ////网格的宽度	
 
 	printf("本窗口的尺寸为:%i*%i\n",Window_Width,Window_Height);	
 
