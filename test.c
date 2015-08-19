@@ -36,18 +36,20 @@ void Paint_GridRectangle(HDC hdc,int x,int y,long Color)
 	HBRUSH hGBrush1;  ///ÁÙÊ±»­Ë¢¾ä±ú
 
 	Glogbrush1.lbStyle=BS_SOLID;
-	Glogbrush1.lbColor=RGB(Color);
+	Glogbrush1.lbColor=RGB(Color>>16,(Color>>8)&0xff,Color&0xff);
 	Glogbrush1.lbHatch=HS_VERTICAL;
 
 	Gpoint.x=1;
 	Gpoint.y=0;
+	
+	Color=(~Color)&0xffffff;
 
 	Glogpen1.lopnStyle=PS_SOLID;
 	Glogpen1.lopnWidth=Gpoint;
-	Glogpen1.lopnColor=RGB(~Color);
+	Glogpen1.lopnColor=RGB(Color>>16,(Color>>8)&0xff,Color&0xff);
 
-	hGPen1=CreatePenIndirect(Glogpen1); ///´´½¨»­±Ê
-	hGBrush1=CreateBrushIndirect(Glogbrush1);  ///´´½¨»­Ë¢
+	(HPEN)hGPen1=CreatePenIndirect(Glogpen1); ///´´½¨»­±Ê
+	(HBRUSH)hGBrush1=CreateBrushIndirect(Glogbrush1);  ///´´½¨»­Ë¢
 
 	hGPen1=SelectObject(hdc,hGPen1);      ///Ñ¡Ôñ»­±Ê
 	hGBrush1=SelectObject(hdc,hGBrush1);
