@@ -26,8 +26,37 @@ WNDPROC wndprocScroll;
 static HWND 				hwndScroll;
 
 //////////////////////在当前坐标位置填充一个正方形，尺寸为网格尺寸，可以选择矩形的颜色
-void Paint_GridRectangle(HDC hdc,int x,int y,int Color)
+void Paint_GridRectangle(HDC hdc,int x,int y,long Color)
 {
+	LOGBRUSH Glogbrush1;  //临时画刷
+	LOGPEN  Glogpen1;    ///临时画笔
+	POINT Gpoint;         ///临时点
+
+	HPEN hGPen1;  //画笔句柄
+	HBRUSH hGBrush1;  ///临时画刷句柄
+
+	Glogbrush1.lbStyle=BS_SOLID;
+	Glogbrush1.lbColor=RGB(Color);
+	Glogbrush1.lbHatch=HS_VERTICAL;
+
+	Gpoint.x=1;
+	Gpoint.y=0;
+
+	Glogpen1.lopnStyle=PS_SOLID;
+	Glogpen1.lopnWidth=Gpoint;
+	Glogpen1.lopnColor=RGB(~Color);
+
+	hGPen1=CreatePenIndirect(Glogpen1); ///创建画笔
+	hGBrush1=CreateBrushIndirect(Glogbrush1);  ///创建画刷
+
+	hGPen1=SelectObject(hdc,hGPen1);      ///选择画笔
+	hGBrush1=SelectObject(hdc,hGBrush1);
+
+	Rectangle(hdc,x,y,x+Grid_Width,y+Grid_Width);  ///填充矩形
+
+	SelectObject(hdc,hGPen1);      ///还原画笔
+	SelectObject(hdc,hGBrush1);
+
 	
 }
 
@@ -50,6 +79,8 @@ void Paint_Grid(HDC hdc)
 		LineTo(hdc,Grid_Num2,Grid_Num1*Step);					///终止点
 		
 	}
+
+	Paint_GridRectangle(hdc,0,0,0);
 }
 
 int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,int iCmdShow)
