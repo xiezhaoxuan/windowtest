@@ -18,6 +18,8 @@ int ScrollBar_Height = 0;  ///滚动条的高度
 
 int Grid_Width=0;   ///128*32的网格的宽度
 
+unsigned char Grid_Struct[32][128];  /////网格的结构体，最低位标志网格的显示状态。
+
 LOGBRUSH logbrush;   ///定义逻辑画刷
 HBRUSH	 hBrush;	///画刷句柄
 
@@ -32,8 +34,8 @@ void Paint_GridRectangle(HDC hdc,int x,int y,long Color)
 	LOGPEN  Glogpen1;    ///临时画笔
 	POINT Gpoint;         ///临时点
 
-	HPEN hGPen1;  //画笔句柄
-	HBRUSH hGBrush1;  ///临时画刷句柄
+	HPEN hGPen1,hGPen2;  //画笔句柄
+	HBRUSH hGBrush1,hGBrush2;  ///临时画刷句柄
 
 	Glogbrush1.lbStyle=BS_SOLID;
 	Glogbrush1.lbColor=RGB(Color>>16,(Color>>8)&0xff,Color&0xff);
@@ -48,18 +50,37 @@ void Paint_GridRectangle(HDC hdc,int x,int y,long Color)
 	Glogpen1.lopnWidth=Gpoint;
 	Glogpen1.lopnColor=RGB(Color>>16,(Color>>8)&0xff,Color&0xff);
 
-	(HPEN)hGPen1=CreatePenIndirect(Glogpen1); ///创建画笔
-	(HBRUSH)hGBrush1=CreateBrushIndirect(Glogbrush1);  ///创建画刷
+	hGPen1=CreatePenIndirect(&Glogpen1); ///创建画笔
+	hGBrush1=CreateBrushIndirect(&Glogbrush1);  ///创建画刷
 
-	hGPen1=SelectObject(hdc,hGPen1);      ///选择画笔
-	hGBrush1=SelectObject(hdc,hGBrush1);
+	hGPen2=SelectObject(hdc,hGPen1);      ///选择画笔
+	hGBrush2=SelectObject(hdc,hGBrush1);
 
 	Rectangle(hdc,x,y,x+Grid_Width,y+Grid_Width);  ///填充矩形
 
-	SelectObject(hdc,hGPen1);      ///还原画笔
-	SelectObject(hdc,hGBrush1);
-
+	SelectObject(hdc,hGPen2);      ///还原画笔
+	SelectObject(hdc,hGBrush2);
 	
+	DeleteObject(hGPen1);
+	DeleteObject(hGBrush1);
+}
+
+///////////////////////重绘每个小方格，根据网格结构体
+void Paint_Rectangle(HDC hdc)  ///重绘每个小方格	
+{
+	int x,y;
+	for(x=0;x<32;x++)
+	{
+		for(y=0;y<128;y++)
+		{
+			if(Grid_Struct[x][y]&0x01)
+			{
+				Paint_GridRectangle(hdc,y*Grid_Width,x*Grid_Width,0x00);
+			}
+			else
+				Paint_GridRectangle(hdc,y*Grid_Width,x*Grid_Width,0xffffff);
+		}
+	}
 }
 
 ///////////////////在界面上半部分画出128*32的网格，供以后使用
@@ -81,8 +102,6 @@ void Paint_Grid(HDC hdc)
 		LineTo(hdc,Grid_Num2,Grid_Num1*Step);					///终止点
 		
 	}
-
-	Paint_GridRectangle(hdc,0,0,0);
 }
 
 int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,int iCmdShow)
@@ -166,12 +185,17 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 	RECT			rect;
 	HINSTANCE		hInstance;
 	
+	unsigned int x,y;
 	static int vPos=0;
 	char szScrollPos[100]; 
 
 	switch(message)
 	{
 		case WM_CREATE:
+			for(x=0;x<32;x++)       ///结构体初始化
+				for(y=0;y<128;y++)
+					Grid_Struct[x][y]=0;
+
 			SetScrollRange(hwnd,SB_VERT,0,1000,TRUE);
 
 			hInstance = (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE);
@@ -191,6 +215,25 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 			
 			printf("创建了一个水平滚动条控件\n");
 		return 0;
+		
+		case WM_LBUTTONDOWN:   ////鼠标左键按下
+			x=LOWORD(lParam);
+			y=HIWORD(lParam);
+			x=x/Grid_Width;
+			y=y/Grid_Width;
+			if((x<128)&(y<32))
+			{
+				if(Grid_Struct[y][x]&0x01)  //判断显示状态
+				{
+					Grid_Struct[y][x]&=~0x01;
+				}
+				else
+				{
+					Grid_Struct[y][x]|=0x01;
+				}	
+				InvalidateRect(hwnd,NULL,TRUE);
+			}
+		return 0;
 
 		case WM_PAINT:
 			hdc = BeginPaint(hwnd,&ps);
@@ -199,8 +242,8 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 			sprintf(szScrollPos,"%d",vPos);
 
 			DrawText(hdc,szScrollPos,strlen(szScrollPos),&rect,DT_SINGLELINE | DT_CENTER | DT_VCENTER);
-			Paint_Grid(hdc);  ////画网格	
-			
+		//	Paint_Grid(hdc);  ////画网格	
+			Paint_Rectangle(hdc);  ///重绘每个小方格
 			EndPaint(hwnd,&ps);
 		return 0;
 
