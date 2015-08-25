@@ -23,6 +23,8 @@ unsigned char Grid_Struct[32][128];  /////网格的结构体，最低位标志网格的显示状态
 LOGBRUSH logbrush;   ///定义逻辑画刷
 HBRUSH	 hBrush;	///画刷句柄
 
+HANDLE hFile;    ///文件句柄
+
 WNDPROC wndprocScroll;
 
 static HWND 				hwndScroll;
@@ -48,7 +50,7 @@ void Paint_GridRectangle(HDC hdc,int x,int y,long Color)
 
 	Glogpen1.lopnStyle=PS_SOLID;
 	Glogpen1.lopnWidth=Gpoint;
-	Glogpen1.lopnColor=RGB(Color>>16,(Color>>8)&0xff,Color&0xff);
+	Glogpen1.lopnColor=RGB(0xf0,(Color>>8)&0xff,Color&0xff);
 
 	hGPen1=CreatePenIndirect(&Glogpen1); ///创建画笔
 	hGBrush1=CreateBrushIndirect(&Glogbrush1);  ///创建画刷
@@ -110,7 +112,9 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,in
 	HWND 				hwnd;
 	MSG	 				msg;
 	WNDCLASS 			wndclass;
-
+	
+	int x,y;
+	unsigned long z;
 	logbrush.lbStyle		=	BS_SOLID;				///保护色画刷
 	logbrush.lbColor		=	RGB(204,232,207);
 	//logbrush.lbHatch		=	NULL;
@@ -120,6 +124,42 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,in
 	freopen("CONOUT$","w",stdout);
 	
 	printf("程序开始运行。。。\n");
+	
+	hFile=CreateFile(".\\back.bat",
+			GENERIC_READ|GENERIC_WRITE,
+			FILE_SHARE_READ|FILE_SHARE_WRITE,
+			NULL,
+			OPEN_ALWAYS,
+			FILE_ATTRIBUTE_NORMAL,
+			NULL
+			);
+	if(hFile==INVALID_HANDLE_VALUE)  
+	{
+		printf("新建文件失败\n");
+	}
+	else 
+	{
+		if(GetLastError()==0)   ////新建的文件
+		{
+			printf("新建back.bat\n");
+		
+			for(x=0;x<32;x++)       ///结构体初始化
+				for(y=0;y<128;y++)
+					Grid_Struct[x][y]=0;
+		}
+		else
+		{
+			printf("打开back.bat\n");
+			SetFilePointer(hFile,0,0,FILE_BEGIN);
+			ReadFile(hFile,
+					Grid_Struct,
+					128*32,
+					&z,
+					NULL
+					);
+		}
+	}
+
 
 	hBrush	=	CreateBrushIndirect(&logbrush);
 
@@ -145,8 +185,8 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,in
 	Screen_Width = GetSystemMetrics(SM_CXSCREEN);		///当前屏幕尺寸
 	Screen_Height = GetSystemMetrics(SM_CYSCREEN);
 
-	Window_Width = Screen_Width / 2;				///窗口的尺寸
-	Window_Height = Screen_Height / 2;
+	Window_Width = Screen_Width * 2 / 3;				///窗口的尺寸
+	Window_Height = Screen_Height * 2 / 3;
 	
 	Grid_Width = Window_Width/128;     ////网格的宽度	
 
@@ -186,15 +226,13 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 	HINSTANCE		hInstance;
 	
 	unsigned int x,y;
+	unsigned long z;
 	static int vPos=0;
 	char szScrollPos[100]; 
 
 	switch(message)
 	{
 		case WM_CREATE:
-			for(x=0;x<32;x++)       ///结构体初始化
-				for(y=0;y<128;y++)
-					Grid_Struct[x][y]=0;
 
 			SetScrollRange(hwnd,SB_VERT,0,1000,TRUE);
 
@@ -223,16 +261,54 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 			y=y/Grid_Width;
 			if((x<128)&(y<32))
 			{
+				hdc=GetDC(hwnd);
 				if(Grid_Struct[y][x]&0x01)  //判断显示状态
 				{
+					Paint_GridRectangle(hdc,x*Grid_Width,y*Grid_Width,0xffffff);
 					Grid_Struct[y][x]&=~0x01;
 				}
 				else
 				{
+					Paint_GridRectangle(hdc,x*Grid_Width,y*Grid_Width,0x0);
 					Grid_Struct[y][x]|=0x01;
 				}	
-				InvalidateRect(hwnd,NULL,TRUE);
+				ReleaseDC(hwnd,hdc);
+				Grid_Struct[y][x]|=0x10;
+
 			}
+		return 0;
+		
+		case WM_MOUSEMOVE:   ///鼠标移动
+			if(wParam & MK_LBUTTON)
+			{
+				x=LOWORD(lParam);
+				y=HIWORD(lParam);
+				x=x/Grid_Width;
+				y=y/Grid_Width;
+				if((Grid_Struct[y][x]&0xf0)==0x00)   ///第一次经过时才会改变状态
+				{
+					hdc=GetDC(hwnd);
+					if(Grid_Struct[y][x]&0x01)  //判断显示状态
+					{
+						Paint_GridRectangle(hdc,x*Grid_Width,y*Grid_Width,0xffffff);
+						Grid_Struct[y][x]&=~0x01;
+					}
+					else
+					{
+						Paint_GridRectangle(hdc,x*Grid_Width,y*Grid_Width,0x0);
+						Grid_Struct[y][x]|=0x01;
+					}	
+					ReleaseDC(hwnd,hdc);
+					Grid_Struct[y][x]|=0x10;
+				}
+
+			}
+		return 0;
+		
+		case WM_LBUTTONUP:
+			for(x=0;x<32;x++)
+				for(y=0;y<128;y++)
+					Grid_Struct[x][y]&=0x0f;
 		return 0;
 
 		case WM_PAINT:
@@ -308,7 +384,16 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 		return 0;
 
 		case WM_DESTROY:
-			FreeConsole();    /////新建一个控制台窗口
+			FreeConsole();    /////关闭一个控制台窗口
+			SetFilePointer(hFile,0,0,FILE_BEGIN);
+			WriteFile(hFile,
+					Grid_Struct,
+					128*32,
+					&z,
+					NULL
+					);
+			printf("写入并关闭文件\n");
+			CloseHandle(hFile);  ///关闭文件
 			PostQuitMessage(0);
 		return 0;
 	}
