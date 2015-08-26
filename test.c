@@ -16,6 +16,12 @@ int Window_Height = 0;  ///窗口的高度
 int ScrollBar_Width = 0;  ///滚动条的宽度
 int ScrollBar_Height = 0;  ///滚动条的高度
 
+int Button_Width = 0;  ///按钮的宽度
+int Button_Height = 0;  ///按钮的高度
+
+int Button_xLocal = 0;  ///第一个按钮的横坐标，以后的按钮以他为基准
+int Button_yLocal = 0;  ///第一个按钮的纵坐标
+
 int Grid_Width=0;   ///128*32的网格的宽度
 
 unsigned char Grid_Struct[32][128];  /////网格的结构体，最低位标志网格的显示状态。
@@ -125,7 +131,7 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,in
 	
 	printf("程序开始运行。。。\n");
 	
-	hFile=CreateFile(".\\back.bat",
+	hFile=CreateFile(".\\back.back",
 			GENERIC_READ|GENERIC_WRITE,
 			FILE_SHARE_READ|FILE_SHARE_WRITE,
 			NULL,
@@ -141,7 +147,7 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,in
 	{
 		if(GetLastError()==0)   ////新建的文件
 		{
-			printf("新建back.bat\n");
+			printf("新建back.back\n");
 		
 			for(x=0;x<32;x++)       ///结构体初始化
 				for(y=0;y<128;y++)
@@ -149,7 +155,7 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,in
 		}
 		else
 		{
-			printf("打开back.bat\n");
+			printf("打开back.back\n");
 			SetFilePointer(hFile,0,0,FILE_BEGIN);
 			ReadFile(hFile,
 					Grid_Struct,
@@ -188,6 +194,14 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,in
 	Window_Width = Screen_Width * 2 / 3;				///窗口的尺寸
 	Window_Height = Screen_Height * 2 / 3;
 	
+	Button_Width = LOWORD(GetDialogBaseUnits());    ///按钮的尺寸
+	Button_Height = HIWORD(GetDialogBaseUnits());
+	Button_Width *= 20;
+	Button_Height =Button_Height*7/4;
+
+	Button_xLocal = Window_Width-(Button_Width*3/2);  ///第一个按钮的位置坐标
+	Button_yLocal = Window_Height/2;
+
 	Grid_Width = Window_Width/128;     ////网格的宽度	
 
 	printf("本窗口的尺寸为:%i*%i\n",Window_Width,Window_Height);	
@@ -224,6 +238,8 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 	PAINTSTRUCT		ps;
 	RECT			rect;
 	HINSTANCE		hInstance;
+
+	HWND			hwndButton1;    ///清除按钮  
 	
 	unsigned int x,y;
 	unsigned long z;
@@ -252,6 +268,16 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 			SetScrollRange(hwndScroll,SB_CTL,0,1000,TRUE);
 			
 			printf("创建了一个水平滚动条控件\n");
+			
+			hwndButton1 = CreateWindow(TEXT("button"),
+					TEXT("清空显示区"),
+					WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+					Button_xLocal,Button_yLocal,
+					Button_Width,Button_Height,
+					hwnd,(HMENU)11,
+					hInstance,NULL
+					);
+			
 		return 0;
 		
 		case WM_LBUTTONDOWN:   ////鼠标左键按下
@@ -259,7 +285,7 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 			y=HIWORD(lParam);
 			x=x/Grid_Width;
 			y=y/Grid_Width;
-			if((x<128)&(y<32))
+			if((x<128)&&(y<32))
 			{
 				hdc=GetDC(hwnd);
 				if(Grid_Struct[y][x]&0x01)  //判断显示状态
@@ -285,23 +311,36 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 				y=HIWORD(lParam);
 				x=x/Grid_Width;
 				y=y/Grid_Width;
-				if((Grid_Struct[y][x]&0xf0)==0x00)   ///第一次经过时才会改变状态
+				if((x<128)&&(y<32))
 				{
-					hdc=GetDC(hwnd);
-					if(Grid_Struct[y][x]&0x01)  //判断显示状态
+					if((Grid_Struct[y][x]&0xf0)==0x00)   ///第一次经过时才会改变状态
 					{
-						Paint_GridRectangle(hdc,x*Grid_Width,y*Grid_Width,0xffffff);
-						Grid_Struct[y][x]&=~0x01;
+						hdc=GetDC(hwnd);
+						if(Grid_Struct[y][x]&0x01)  //判断显示状态
+						{
+							Paint_GridRectangle(hdc,x*Grid_Width,y*Grid_Width,0xffffff);
+							Grid_Struct[y][x]&=~0x01;
+						}
+						else
+						{
+							Paint_GridRectangle(hdc,x*Grid_Width,y*Grid_Width,0x0);
+							Grid_Struct[y][x]|=0x01;
+						}	
+						ReleaseDC(hwnd,hdc);
+						Grid_Struct[y][x]|=0x10;
 					}
-					else
-					{
-						Paint_GridRectangle(hdc,x*Grid_Width,y*Grid_Width,0x0);
-						Grid_Struct[y][x]|=0x01;
-					}	
-					ReleaseDC(hwnd,hdc);
-					Grid_Struct[y][x]|=0x10;
 				}
 
+			}
+		return 0;
+
+		case WM_COMMAND:
+			if((LOWORD(wParam)==11)&&((HIWORD(wParam)==BN_CLICKED)))  ////清除显示区按钮按下
+			{
+				for(x=0;x<32;x++)
+					for(y=0;y<128;y++)
+						Grid_Struct[x][y]&=0xf0;
+				InvalidateRect(hwnd,NULL,TRUE);
 			}
 		return 0;
 		
