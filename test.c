@@ -340,7 +340,12 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 				for(x=0;x<32;x++)
 					for(y=0;y<128;y++)
 						Grid_Struct[x][y]&=0xf0;
-				InvalidateRect(hwnd,NULL,TRUE);
+
+				rect.left=0;	////ÖØ»­Í¼ÐÎÇøÓò
+				rect.top=0;
+				rect.right=Grid_Width*128;
+				rect.bottom=Grid_Width*32;
+				InvalidateRect(hwnd,&rect,TRUE);
 			}
 		return 0;
 		

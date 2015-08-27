@@ -333,6 +333,16 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 
 			}
 		return 0;
+
+		case WM_COMMAND:
+			if((LOWORD(wParam)==11)&&((HIWORD(wParam)==BN_CLICKED)))  ////清除显示区按钮按下
+			{
+				for(x=0;x<32;x++)
+					for(y=0;y<128;y++)
+						Grid_Struct[x][y]&=0xf0;
+				InvalidateRect(hwnd,NULL,TRUE);
+			}
+		return 0;
 		
 		case WM_LBUTTONUP:
 			for(x=0;x<32;x++)
