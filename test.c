@@ -13,14 +13,18 @@ int Screen_Height=0;	//屏幕高度
 int Window_Width = 0;   ///窗口的宽度
 int Window_Height = 0;  ///窗口的高度
 
-int ScrollBar_Width = 0;  ///滚动条的宽度
-int ScrollBar_Height = 0;  ///滚动条的高度
-
 int Button_Width = 0;  ///按钮的宽度
 int Button_Height = 0;  ///按钮的高度
 
 int Button_xLocal = 0;  ///第一个按钮的横坐标，以后的按钮以他为基准
 int Button_yLocal = 0;  ///第一个按钮的纵坐标
+
+int ScrollBar_Width = 0;  ///滚动条的宽度
+int ScrollBar_Height = 0;  ///滚动条的高度
+
+int ScrollBar_xLocal = 0;  ///第一个滚动条的横坐标，以后的按钮以他为基准
+int ScrollBar_yLocal = 0;  ///第一个滚动条的纵坐标
+
 
 int Grid_Width=0;   ///128*32的网格的宽度
 
@@ -31,9 +35,10 @@ HBRUSH	 hBrush;	///画刷句柄
 
 HANDLE hFile;    ///文件句柄
 
-WNDPROC wndprocScroll;
+HWND			hwndButton1,hwndButton2;    ///按钮  
+	
+HWND 				hwndScroll1,hwndScroll2,hwndScroll3;  ///滚动条
 
-static HWND 				hwndScroll;
 
 //////////////////////在当前坐标位置填充一个正方形，尺寸为网格尺寸，可以选择矩形的颜色
 void Paint_GridRectangle(HDC hdc,int x,int y,long Color)
@@ -205,7 +210,9 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,in
 	Grid_Width = Window_Width/128;     ////网格的宽度	
 
 	printf("本窗口的尺寸为:%i*%i\n",Window_Width,Window_Height);	
-
+	
+	ScrollBar_xLocal = Button_Width/3;
+	ScrollBar_yLocal = Button_yLocal;
 	ScrollBar_Width = Window_Width / 5;   ///滚动条的尺寸
 	ScrollBar_Height = Window_Height / 20;
 
@@ -239,7 +246,6 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 	RECT			rect;
 	HINSTANCE		hInstance;
 
-	HWND			hwndButton1;    ///清除按钮  
 	
 	unsigned int x,y;
 	unsigned long z;
@@ -254,18 +260,18 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 
 			hInstance = (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE);
 
-			hwndScroll = CreateWindow(TEXT("scrollbar"),
+			hwndScroll1 = CreateWindow(TEXT("scrollbar"),
 									  "Scroll",
 									  WS_CHILD|SBS_HORZ|WS_VISIBLE,
-									  100,
-									  300,
+									  ScrollBar_xLocal,
+									  ScrollBar_yLocal,
 									  ScrollBar_Width,
 									  ScrollBar_Height,
 									  hwnd,
 									  (HMENU)10,
 									  hInstance,
 									  NULL);
-			SetScrollRange(hwndScroll,SB_CTL,0,1000,TRUE);
+			SetScrollRange(hwndScroll1,SB_CTL,0,1000,TRUE);
 			
 			printf("创建了一个水平滚动条控件\n");
 			
@@ -277,6 +283,15 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 					hwnd,(HMENU)11,
 					hInstance,NULL
 					);
+			hwndButton2 = CreateWindow(TEXT("button"),
+					TEXT("发送图像"),
+					WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+					Button_xLocal,Button_yLocal+Button_Height*3/2,
+					Button_Width,Button_Height,
+					hwnd,(HMENU)12,
+					hInstance,NULL
+					);
+
 			
 		return 0;
 		
@@ -340,12 +355,10 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 				for(x=0;x<32;x++)
 					for(y=0;y<128;y++)
 						Grid_Struct[x][y]&=0xf0;
+				hdc=GetDC(hwnd);
+				Paint_Rectangle(hdc);  ///重绘每个小方格
+				ReleaseDC(hwnd,hdc);
 
-				rect.left=0;	////重画图形区域
-				rect.top=0;
-				rect.right=Grid_Width*128;
-				rect.bottom=Grid_Width*32;
-				InvalidateRect(hwnd,&rect,TRUE);
 			}
 		return 0;
 		
@@ -388,42 +401,52 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 
 		case WM_HSCROLL:    ////水平滚动条
 			printf("水平滚动条控件有动作\n");
-			switch(LOWORD(wParam))
+			if(lParam==(int)hwndScroll1)
 			{
-				case SB_THUMBTRACK:	///拖动
-					vPos = HIWORD(wParam);
-					printf("水平滚动条控件位置发生改变，新位置为:%i\n",vPos);
-				break;
+				switch(LOWORD(wParam))
+				{
+					case SB_THUMBTRACK:	///拖动
+						vPos = HIWORD(wParam);
+						printf("水平滚动条控件位置发生改变，新位置为:%i\n",vPos);
+					break;
 
-				case SB_LINERIGHT:  ///右移一个
-					vPos = GetScrollPos(hwndScroll,SB_CTL)+1;
-					printf("右移，新位置为:%i\n",vPos);
-				break;
+					case SB_LINERIGHT:  ///右移一个
+						vPos = GetScrollPos(hwndScroll1,SB_CTL)+1;
+						printf("右移，新位置为:%i\n",vPos);
+					break;
 
-				case SB_LINELEFT:  ///左移一个
-					vPos = GetScrollPos(hwndScroll,SB_CTL)-1;
-					printf("左移，新位置为:%i\n",vPos);
-				break;
+					case SB_LINELEFT:  ///左移一个
+						vPos = GetScrollPos(hwndScroll1,SB_CTL)-1;
+						printf("左移，新位置为:%i\n",vPos);
+					break;
 
-				case SB_PAGERIGHT:  ///右移一段
-					vPos = GetScrollPos(hwndScroll,SB_CTL)+10;
-					printf("右移一段，新位置为:%i\n",vPos);
-				break;
+					case SB_PAGERIGHT:  ///右移一段
+						vPos = GetScrollPos(hwndScroll1,SB_CTL)+10;
+						printf("右移一段，新位置为:%i\n",vPos);
+					break;
 
-				case SB_PAGELEFT:  ///左移一段
-					vPos = GetScrollPos(hwndScroll,SB_CTL)-10;
-					printf("左移一段，新位置为:%i\n",vPos);
-				break;
+					case SB_PAGELEFT:  ///左移一段
+						vPos = GetScrollPos(hwndScroll1,SB_CTL)-10;
+						printf("左移一段，新位置为:%i\n",vPos);
+					break;
 				
-				default:
+					default:
 
-				break;
-			}
-			if(vPos != GetScrollPos(hwndScroll,SB_CTL))
-			{
-				printf("水平滚动条控件更新位置\n");
-				SetScrollPos(hwndScroll,SB_CTL,vPos,TRUE);
-				InvalidateRect(hwnd,NULL,TRUE);
+					break;
+				}
+				if(vPos != GetScrollPos(hwndScroll1,SB_CTL))
+				{
+					printf("水平滚动条控件更新位置\n");
+					hdc=GetDC(hwnd);
+					GetClientRect(hwnd,&rect);
+					sprintf(szScrollPos,"%d",vPos);
+					
+					SetScrollPos(hwndScroll1,SB_CTL,vPos,TRUE);
+					DrawText(hdc,szScrollPos,strlen(szScrollPos),&rect,DT_SINGLELINE | DT_CENTER | DT_VCENTER);
+			
+					hdc=GetDC(hwnd);
+					
+				}
 			}
 		return 0;
 
