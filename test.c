@@ -25,9 +25,17 @@ int ScrollBar_Height = 0;  ///滚动条的高度
 int ScrollBar_xLocal = 0;  ///第一个滚动条的横坐标，以后的按钮以他为基准
 int ScrollBar_yLocal = 0;  ///第一个滚动条的纵坐标
 
+int Combo_Width = 0;    ////下拉列表框的宽度
+int Combo_Height = 0; 
+
+int Combo_xLocal = 0;  ///下拉列表框的坐标
+int Combo_yLocal = 0;
 
 int Grid_Width=0;   ///128*32的网格的宽度
 
+int Com_Number = 0;  ///串口号,只是个标号，0表示串口1,1表示串口2，以此类推
+int Com_Baud = 2;  ///串口波特率,只是个标号0表示4800  1为9600 2为19200 3为115200
+int Com_Status = 0;  ///串口状态，最低位表示串口打开还是关闭，1为打开，0为关闭
 unsigned char Grid_Struct[32][128];  /////网格的结构体，最低位标志网格的显示状态。
 
 LOGBRUSH logbrush;   ///定义逻辑画刷
@@ -39,6 +47,7 @@ HWND			hwndButton1,hwndButton2;    ///按钮
 	
 HWND 				hwndScroll1,hwndScroll2,hwndScroll3;  ///滚动条
 
+HWND			hwndCombo1,hwndCombo2;   ///下拉列表框
 
 //////////////////////在当前坐标位置填充一个正方形，尺寸为网格尺寸，可以选择矩形的颜色
 void Paint_GridRectangle(HDC hdc,int x,int y,long Color)
@@ -168,6 +177,20 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,in
 					&z,
 					NULL
 					);
+			SetFilePointer(hFile,4096,0,FILE_BEGIN);
+			ReadFile(hFile,
+					&Com_Number,
+					1,
+					&z,
+					NULL
+					);
+			SetFilePointer(hFile,4097,0,FILE_BEGIN);
+			ReadFile(hFile,
+					&Com_Baud,
+					1,
+					&z,
+					NULL
+					);
 		}
 	}
 
@@ -203,6 +226,12 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,in
 	Button_Height = HIWORD(GetDialogBaseUnits());
 	Button_Width *= 20;
 	Button_Height =Button_Height*7/4;
+	
+	Combo_Width = Button_Width;     ///下拉列表框的尺寸
+	Combo_Height = Button_Height*10;
+
+	Combo_xLocal = Combo_Width/2;		///第一个下拉列表框的位置坐标
+	Combo_yLocal = Window_Height-(Button_Height*2);
 
 	Button_xLocal = Window_Width-(Button_Width*3/2);  ///第一个按钮的位置坐标
 	Button_yLocal = Window_Height/2;
@@ -218,7 +247,7 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,in
 
 	hwnd = CreateWindow( szAppName,
 						 TEXT("The Hello Program"),
-						 WS_CAPTION|WS_SYSMENU|WS_VSCROLL,
+						 WS_CAPTION|WS_SYSMENU,
 						 (Screen_Width - Window_Width) / 2,
 						 (Screen_Height - Window_Height) / 2,
 						 Window_Width,
@@ -250,13 +279,12 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 	unsigned int x,y;
 	unsigned long z;
 	static int vPos=0;
-	char szScrollPos[100]; 
+	char szScrollPos[100];
+	char szTemp[100];
 
 	switch(message)
 	{
 		case WM_CREATE:
-
-			SetScrollRange(hwnd,SB_VERT,0,1000,TRUE);
 
 			hInstance = (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE);
 
@@ -291,8 +319,69 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 					hwnd,(HMENU)12,
 					hInstance,NULL
 					);
-
-			
+			hwndCombo1 = CreateWindow(TEXT("combobox"),
+					NULL,
+					WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST,
+					Combo_xLocal,Combo_yLocal,
+					Combo_Width,Combo_Height,
+					hwnd,(HMENU)20,
+					hInstance,NULL
+					);
+			hwndCombo2 = CreateWindow(TEXT("combobox"),
+					NULL,
+					WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST,
+					Combo_xLocal+(Combo_Width*3/2),Combo_yLocal,
+					Combo_Width,Combo_Height,
+					hwnd,(HMENU)21,
+					hInstance,NULL
+					);
+			hwndButton2 = CreateWindow(TEXT("button"),
+					TEXT("打开串口"),
+					WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+					Combo_xLocal+(Combo_Width*3),Combo_yLocal-5,
+					Button_Width,Button_Height,
+					hwnd,(HMENU)13,
+					hInstance,NULL
+					);
+			for(x=0;x<10;x++)    ////串口选项
+			{
+				sprintf(szTemp,"COM%d",x+1);
+				SendMessage(hwndCombo1,
+						CB_ADDSTRING,
+						0,
+						(LPARAM)szTemp
+						);
+			};
+			SendMessage(hwndCombo1,
+					CB_SETCURSEL,
+					Com_Number,
+					0
+					);
+			SendMessage(hwndCombo2,
+					CB_ADDSTRING,
+					0,
+					(LPARAM)TEXT("4800")
+					);
+			SendMessage(hwndCombo2,
+					CB_ADDSTRING,
+					0,
+					(LPARAM)TEXT("9600")
+					);
+			SendMessage(hwndCombo2,
+					CB_ADDSTRING,
+					0,
+					(LPARAM)TEXT("19200")
+					);
+			SendMessage(hwndCombo2,
+					CB_ADDSTRING,
+					0,
+					(LPARAM)TEXT("115200")
+					);
+			SendMessage(hwndCombo2,
+					CB_SETCURSEL,
+					Com_Baud,
+					0
+					);
 		return 0;
 		
 		case WM_LBUTTONDOWN:   ////鼠标左键按下
@@ -360,6 +449,57 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 				ReleaseDC(hwnd,hdc);
 
 			}
+			
+			if(((HWND)lParam==hwndCombo1)&&(HIWORD(wParam)==CBN_SELCHANGE))   ///改变串口号选择
+			{
+				printf("串口号改变\n");
+				Com_Number = SendMessage(hwndCombo1,
+						CB_GETCURSEL,
+						0,
+						0
+						);
+			}
+			if(((HWND)lParam==hwndCombo2)&&(HIWORD(wParam)==CBN_SELCHANGE))   ///改变串口号选择
+			{
+				printf("波特率改变\n");
+				Com_Baud = SendMessage(hwndCombo2,
+						CB_GETCURSEL,
+						0,
+						0
+						);
+			}
+			if((LOWORD(wParam)==13)&&((HIWORD(wParam)==BN_CLICKED)))  ////打开串口按钮按下
+			{
+				if(Com_Status&0x01)   ////关闭串口
+				{
+					EnableWindow(hwndCombo1,TRUE);
+					EnableWindow(hwndCombo2,TRUE);
+					Com_Status&=~0x01;
+					printf("关闭串口\n");
+				}
+				else				///打开串口
+				{
+					EnableWindow(hwndCombo1,FALSE);
+					EnableWindow(hwndCombo2,FALSE);
+					Com_Status|=0x01;
+					
+					SetFilePointer(hFile,4096,0,FILE_BEGIN);  ///存储串口号和波特率
+					WriteFile(hFile,
+						&Com_Number,
+						1,
+						&z,
+						NULL
+						);
+					SetFilePointer(hFile,4097,0,FILE_BEGIN);  ///存储串口号和波特率
+					WriteFile(hFile,
+						&Com_Baud,
+						1,
+						&z,
+						NULL
+						);
+					printf("打开串口\n");
+				}
+			}
 		return 0;
 		
 		case WM_LBUTTONUP:
@@ -378,25 +518,6 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 		//	Paint_Grid(hdc);  ////画网格	
 			Paint_Rectangle(hdc);  ///重绘每个小方格
 			EndPaint(hwnd,&ps);
-		return 0;
-
-		case WM_VSCROLL:
-			switch(LOWORD(wParam))
-			{
-				case SB_THUMBTRACK:
-					vPos = HIWORD(wParam);
-				break;
-
-				default:
-
-				break;
-			}
-			if(vPos != GetScrollPos(hwnd,SB_VERT))
-			{
-				SetScrollPos(hwnd,SB_VERT,vPos,TRUE);
-				InvalidateRect(hwnd,NULL,TRUE);
-			}
-			
 		return 0;
 
 		case WM_HSCROLL:    ////水平滚动条
