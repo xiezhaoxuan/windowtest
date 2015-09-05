@@ -296,12 +296,38 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 									  ScrollBar_Width,
 									  ScrollBar_Height,
 									  hwnd,
-									  (HMENU)10,
+									  (HMENU)30,
 									  hInstance,
 									  NULL);
 			SetScrollRange(hwndScroll1,SB_CTL,0,1000,TRUE);
+
+			hwndScroll2 = CreateWindow(TEXT("scrollbar"),
+									  "Scroll",
+									  WS_CHILD|SBS_HORZ|WS_VISIBLE,
+									  ScrollBar_xLocal,
+									  ScrollBar_yLocal+(ScrollBar_Height*3/2),
+									  ScrollBar_Width,
+									  ScrollBar_Height,
+									  hwnd,
+									  (HMENU)31,
+									  hInstance,
+									  NULL);
+			SetScrollRange(hwndScroll2,SB_CTL,0,1000,TRUE);
 			
 			printf("创建了一个水平滚动条控件\n");
+
+			hwndScroll3 = CreateWindow(TEXT("scrollbar"),
+									  "Scroll",
+									  WS_CHILD|SBS_HORZ|WS_VISIBLE,
+									  ScrollBar_xLocal,
+									  ScrollBar_yLocal+(ScrollBar_Height*3),
+									  ScrollBar_Width,
+									  ScrollBar_Height,
+									  hwnd,
+									  (HMENU)32,
+									  hInstance,
+									  NULL);
+			SetScrollRange(hwndScroll3,SB_CTL,0,1000,TRUE);
 			
 			hwndButton1 = CreateWindow(TEXT("button"),
 					TEXT("清空显示区"),
@@ -474,6 +500,11 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 				{
 					EnableWindow(hwndCombo1,TRUE);
 					EnableWindow(hwndCombo2,TRUE);
+					SendMessage(hwndButton2,
+							WM_SETTEXT,
+							0,
+							(LPARAM)TEXT("打开串口")
+							);
 					Com_Status&=~0x01;
 					printf("关闭串口\n");
 				}
@@ -481,6 +512,11 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 				{
 					EnableWindow(hwndCombo1,FALSE);
 					EnableWindow(hwndCombo2,FALSE);
+					SendMessage(hwndButton2,
+							WM_SETTEXT,
+							0,
+							(LPARAM)TEXT("关闭串口")
+							);
 					Com_Status|=0x01;
 					
 					SetFilePointer(hFile,4096,0,FILE_BEGIN);  ///存储串口号和波特率
