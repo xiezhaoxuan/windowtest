@@ -38,6 +38,11 @@ int Com_Baud = 2;  ///串口波特率,只是个标号0表示4800  1为9600 2为19200 3为115200
 int Com_Status = 0;  ///串口状态，最低位表示串口打开还是关闭，1为打开，0为关闭
 unsigned char Grid_Struct[32][128];  /////网格的结构体，最低位标志网格的显示状态。
 
+int Motor1_Param1=0;  ///电机的第一个参数，即水平转速
+int Motor1_Param2=0;  ///电机的第二个参数，即触发延时，指检测到到位信号后多长时间开始显示
+int Motor1_Param3=0;  ///电机的第三个参数，即脉宽时间，指激光开启的时间
+int Motor1_Param4=0;  ///电机的第四个参数，即间隔时间，指激光关闭的时间
+
 LOGBRUSH logbrush;   ///定义逻辑画刷
 HBRUSH	 hBrush;	///画刷句柄
 
@@ -45,7 +50,9 @@ HANDLE hFile;    ///文件句柄
 
 HWND			hwndButton1,hwndButton2;    ///按钮  
 	
-HWND 				hwndScroll1,hwndScroll2,hwndScroll3;  ///滚动条
+HWND 				hwndScroll1,hwndScroll2,hwndScroll3,hwndScroll4;  ///滚动条
+
+HWND			hwndStaticText1,hwndStaticText2,hwndStaticText3,hwndStaticText4;  ////静态文本框
 
 HWND			hwndCombo1,hwndCombo2;   ///下拉列表框
 
@@ -300,12 +307,26 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 									  hInstance,
 									  NULL);
 			SetScrollRange(hwndScroll1,SB_CTL,0,1000,TRUE);
+			SetScrollPos(hwndScroll1,SB_CTL,Motor1_Param1,TRUE);
 
+			sprintf(szTemp,"水平转速:%d",Motor1_Param1);
+			hwndStaticText1 = CreateWindow(TEXT("static"),
+									  szTemp,
+									  WS_CHILD|SS_LEFTNOWORDWRAP|WS_VISIBLE,
+									  ScrollBar_xLocal+(ScrollBar_Width*10/9),
+									  ScrollBar_yLocal,
+									  ScrollBar_Width*3/5,
+									  ScrollBar_Height,
+									  hwnd,
+									  (HMENU)40,
+									  hInstance,
+									  NULL);
+										
 			hwndScroll2 = CreateWindow(TEXT("scrollbar"),
 									  "Scroll",
 									  WS_CHILD|SBS_HORZ|WS_VISIBLE,
 									  ScrollBar_xLocal,
-									  ScrollBar_yLocal+(Height*3/2),
+									  ScrollBar_yLocal+(ScrollBar_Height*3/2),
 									  ScrollBar_Width,
 									  ScrollBar_Height,
 									  hwnd,
@@ -313,6 +334,20 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 									  hInstance,
 									  NULL);
 			SetScrollRange(hwndScroll2,SB_CTL,0,1000,TRUE);
+			SetScrollPos(hwndScroll1,SB_CTL,Motor1_Param2,TRUE);
+
+			sprintf(szTemp,"触发延时:%d",Motor1_Param2);
+			hwndStaticText2 = CreateWindow(TEXT("static"),
+									  szTemp,
+									  WS_CHILD|SS_LEFTNOWORDWRAP|WS_VISIBLE,
+									  ScrollBar_xLocal+(ScrollBar_Width*10/9),
+									  ScrollBar_yLocal+(ScrollBar_Height*3/2),
+									  ScrollBar_Width*3/5,
+									  ScrollBar_Height,
+									  hwnd,
+									  (HMENU)41,
+									  hInstance,
+									  NULL);
 			
 			printf("创建了一个水平滚动条控件\n");
 
@@ -320,7 +355,7 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 									  "Scroll",
 									  WS_CHILD|SBS_HORZ|WS_VISIBLE,
 									  ScrollBar_xLocal,
-									  ScrollBar_yLocal+(Height*3),
+									  ScrollBar_yLocal+(ScrollBar_Height*3),
 									  ScrollBar_Width,
 									  ScrollBar_Height,
 									  hwnd,
@@ -328,7 +363,48 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 									  hInstance,
 									  NULL);
 			SetScrollRange(hwndScroll3,SB_CTL,0,1000,TRUE);
+			SetScrollPos(hwndScroll1,SB_CTL,Motor1_Param3,TRUE);
 			
+			sprintf(szTemp,"脉宽:%d",Motor1_Param3);
+			hwndStaticText3 = CreateWindow(TEXT("static"),
+									  szTemp,
+									  WS_CHILD|SS_LEFTNOWORDWRAP|WS_VISIBLE,
+									  ScrollBar_xLocal+(ScrollBar_Width*10/9),
+									  ScrollBar_yLocal+(ScrollBar_Height*3),
+									  ScrollBar_Width*3/5,
+									  ScrollBar_Height,
+									  hwnd,
+									  (HMENU)42,
+									  hInstance,
+									  NULL);
+
+			hwndScroll4 = CreateWindow(TEXT("scrollbar"),
+									  "Scroll",
+									  WS_CHILD|SBS_HORZ|WS_VISIBLE,
+									  ScrollBar_xLocal,
+									  ScrollBar_yLocal+(ScrollBar_Height*9/2),
+									  ScrollBar_Width,
+									  ScrollBar_Height,
+									  hwnd,
+									  (HMENU)33,
+									  hInstance,
+									  NULL);
+			SetScrollRange(hwndScroll4,SB_CTL,0,1000,TRUE);
+			SetScrollPos(hwndScroll1,SB_CTL,Motor1_Param4,TRUE);
+			
+			sprintf(szTemp,"间隔:%d",Motor1_Param4);
+			hwndStaticText4 = CreateWindow(TEXT("static"),
+									  szTemp,
+									  WS_CHILD|SS_LEFTNOWORDWRAP|WS_VISIBLE,
+									  ScrollBar_xLocal+(ScrollBar_Width*10/9),
+									  ScrollBar_yLocal+(ScrollBar_Height*9/2),
+									  ScrollBar_Width*3/5,
+									  ScrollBar_Height,
+									  hwnd,
+									  (HMENU)43,
+									  hInstance,
+									  NULL);
+
 			hwndButton1 = CreateWindow(TEXT("button"),
 					TEXT("清空显示区"),
 					WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
@@ -550,7 +626,6 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 			GetClientRect(hwnd,&rect);
 			sprintf(szScrollPos,"%d",vPos);
 
-			DrawText(hdc,szScrollPos,strlen(szScrollPos),&rect,DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 		//	Paint_Grid(hdc);  ////画网格	
 			Paint_Rectangle(hdc);  ///重绘每个小方格
 			EndPaint(hwnd,&ps);
@@ -563,44 +638,173 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 				switch(LOWORD(wParam))
 				{
 					case SB_THUMBTRACK:	///拖动
-						vPos = HIWORD(wParam);
-						printf("水平滚动条控件位置发生改变，新位置为:%i\n",vPos);
+						Motor1_Param1 = HIWORD(wParam);
 					break;
 
 					case SB_LINERIGHT:  ///右移一个
-						vPos = GetScrollPos(hwndScroll1,SB_CTL)+1;
-						printf("右移，新位置为:%i\n",vPos);
+						Motor1_Param1 = GetScrollPos(hwndScroll1,SB_CTL)+1;
 					break;
 
 					case SB_LINELEFT:  ///左移一个
-						vPos = GetScrollPos(hwndScroll1,SB_CTL)-1;
-						printf("左移，新位置为:%i\n",vPos);
+						Motor1_Param1 = GetScrollPos(hwndScroll1,SB_CTL)-1;
 					break;
 
 					case SB_PAGERIGHT:  ///右移一段
-						vPos = GetScrollPos(hwndScroll1,SB_CTL)+10;
-						printf("右移一段，新位置为:%i\n",vPos);
+						Motor1_Param1 = GetScrollPos(hwndScroll1,SB_CTL)+10;
 					break;
 
 					case SB_PAGELEFT:  ///左移一段
-						vPos = GetScrollPos(hwndScroll1,SB_CTL)-10;
-						printf("左移一段，新位置为:%i\n",vPos);
+						Motor1_Param1 = GetScrollPos(hwndScroll1,SB_CTL)-10;
 					break;
 				
 					default:
 
 					break;
 				}
-				if(vPos != GetScrollPos(hwndScroll1,SB_CTL))
+				if(Motor1_Param1 != GetScrollPos(hwndScroll1,SB_CTL))
 				{
-					printf("水平滚动条控件更新位置\n");
 					hdc=GetDC(hwnd);
 					GetClientRect(hwnd,&rect);
-					sprintf(szScrollPos,"%d",vPos);
 					
-					SetScrollPos(hwndScroll1,SB_CTL,vPos,TRUE);
-					DrawText(hdc,szScrollPos,strlen(szScrollPos),&rect,DT_SINGLELINE | DT_CENTER | DT_VCENTER);
-			
+					SetScrollPos(hwndScroll1,SB_CTL,Motor1_Param1,TRUE);
+					sprintf(szTemp,"水平转速:%d",Motor1_Param1);
+					SendMessage(hwndStaticText1,
+							WM_SETTEXT,
+							0,
+							(LPARAM)szTemp
+							);
+					hdc=GetDC(hwnd);
+					
+				}
+			}
+			if(lParam==(int)hwndScroll2)
+			{
+				switch(LOWORD(wParam))
+				{
+					case SB_THUMBTRACK:	///拖动
+						Motor1_Param2 = HIWORD(wParam);
+					break;
+
+					case SB_LINERIGHT:  ///右移一个
+						Motor1_Param2 = GetScrollPos(hwndScroll2,SB_CTL)+1;
+					break;
+
+					case SB_LINELEFT:  ///左移一个
+						Motor1_Param2 = GetScrollPos(hwndScroll2,SB_CTL)-1;
+					break;
+
+					case SB_PAGERIGHT:  ///右移一段
+						Motor1_Param2 = GetScrollPos(hwndScroll2,SB_CTL)+10;
+					break;
+
+					case SB_PAGELEFT:  ///左移一段
+						Motor1_Param2 = GetScrollPos(hwndScroll2,SB_CTL)-10;
+					break;
+				
+					default:
+
+					break;
+				}
+				if(Motor1_Param2 != GetScrollPos(hwndScroll2,SB_CTL))
+				{
+					hdc=GetDC(hwnd);
+					GetClientRect(hwnd,&rect);
+					
+					SetScrollPos(hwndScroll2,SB_CTL,Motor1_Param2,TRUE);
+					sprintf(szTemp,"触发延时:%d",Motor1_Param2);
+					SendMessage(hwndStaticText2,
+							WM_SETTEXT,
+							0,
+							(LPARAM)szTemp
+							);
+					hdc=GetDC(hwnd);
+					
+				}
+			}
+			if(lParam==(int)hwndScroll3)
+			{
+				switch(LOWORD(wParam))
+				{
+					case SB_THUMBTRACK:	///拖动
+						Motor1_Param3 = HIWORD(wParam);
+					break;
+
+					case SB_LINERIGHT:  ///右移一个
+						Motor1_Param3 = GetScrollPos(hwndScroll3,SB_CTL)+1;
+					break;
+
+					case SB_LINELEFT:  ///左移一个
+						Motor1_Param3 = GetScrollPos(hwndScroll3,SB_CTL)-1;
+					break;
+
+					case SB_PAGERIGHT:  ///右移一段
+						Motor1_Param3 = GetScrollPos(hwndScroll3,SB_CTL)+10;
+					break;
+
+					case SB_PAGELEFT:  ///左移一段
+						Motor1_Param3 = GetScrollPos(hwndScroll3,SB_CTL)-10;
+					break;
+				
+					default:
+
+					break;
+				}
+				if(Motor1_Param3 != GetScrollPos(hwndScroll3,SB_CTL))
+				{
+					hdc=GetDC(hwnd);
+					GetClientRect(hwnd,&rect);
+					
+					SetScrollPos(hwndScroll3,SB_CTL,Motor1_Param3,TRUE);
+					sprintf(szTemp,"触发延时:%d",Motor1_Param3);
+					SendMessage(hwndStaticText3,
+							WM_SETTEXT,
+							0,
+							(LPARAM)szTemp
+							);
+					hdc=GetDC(hwnd);
+					
+				}
+			}
+			if(lParam==(int)hwndScroll4)
+			{
+				switch(LOWORD(wParam))
+				{
+					case SB_THUMBTRACK:	///拖动
+						Motor1_Param4 = HIWORD(wParam);
+					break;
+
+					case SB_LINERIGHT:  ///右移一个
+						Motor1_Param4 = GetScrollPos(hwndScroll4,SB_CTL)+1;
+					break;
+
+					case SB_LINELEFT:  ///左移一个
+						Motor1_Param4 = GetScrollPos(hwndScroll4,SB_CTL)-1;
+					break;
+
+					case SB_PAGERIGHT:  ///右移一段
+						Motor1_Param4 = GetScrollPos(hwndScroll4,SB_CTL)+10;
+					break;
+
+					case SB_PAGELEFT:  ///左移一段
+						Motor1_Param4 = GetScrollPos(hwndScroll4,SB_CTL)-10;
+					break;
+				
+					default:
+
+					break;
+				}
+				if(Motor1_Param4 != GetScrollPos(hwndScroll4,SB_CTL))
+				{
+					hdc=GetDC(hwnd);
+					GetClientRect(hwnd,&rect);
+					
+					SetScrollPos(hwndScroll4,SB_CTL,Motor1_Param4,TRUE);
+					sprintf(szTemp,"触发延时:%d",Motor1_Param4);
+					SendMessage(hwndStaticText4,
+							WM_SETTEXT,
+							0,
+							(LPARAM)szTemp
+							);
 					hdc=GetDC(hwnd);
 					
 				}
