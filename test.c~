@@ -38,15 +38,17 @@ int Com_Baud = 2;  ///串口波特率,只是个标号0表示4800  1为9600 2为19200 3为115200
 int Com_Status = 0;  ///串口状态，最低位表示串口打开还是关闭，1为打开，0为关闭
 unsigned char Grid_Struct[32][128];  /////网格的结构体，最低位标志网格的显示状态。
 
-int Motor1_Param1=0;  ///电机的第一个参数，即水平转速
-int Motor1_Param2=0;  ///电机的第二个参数，即触发延时，指检测到到位信号后多长时间开始显示
-int Motor1_Param3=0;  ///电机的第三个参数，即脉宽时间，指激光开启的时间
-int Motor1_Param4=0;  ///电机的第四个参数，即间隔时间，指激光关闭的时间
+unsigned int Motor1_Param1=0;  ///电机的第一个参数，即水平转速
+unsigned int Motor1_Param2=0;  ///电机的第二个参数，即触发延时，指检测到到位信号后多长时间开始显示
+unsigned int Motor1_Param3=0;  ///电机的第三个参数，即脉宽时间，指激光开启的时间
+unsigned int Motor1_Param4=0;  ///电机的第四个参数，即间隔时间，指激光关闭的时间
 
 LOGBRUSH logbrush;   ///定义逻辑画刷
 HBRUSH	 hBrush;	///画刷句柄
 
 HANDLE hFile;    ///文件句柄
+
+HANDLE hCom=INVALID_HANDLE_VALUE;    ///串口句柄
 
 HWND			hwndButton1,hwndButton2;    ///按钮  
 	
@@ -145,6 +147,7 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,in
 	logbrush.lbStyle		=	BS_SOLID;				///保护色画刷
 	logbrush.lbColor		=	RGB(204,232,207);
 	//logbrush.lbHatch		=	NULL;
+	unsigned char ucTemp[100];
 
 	
 	AllocConsole();    /////新建一个控制台窗口
@@ -198,6 +201,21 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR szCmdLine,in
 					&z,
 					NULL
 					);
+			SetFilePointer(hFile,4098,0,FILE_BEGIN);
+			ReadFile(hFile,
+					&ucTemp,
+					8,
+					&z,
+					NULL
+					);
+			Motor1_Param1=ucTemp[0];
+			Motor1_Param1=(Motor1_Param1<<8)+ucTemp[1];
+			Motor1_Param2=ucTemp[2];
+			Motor1_Param2=(Motor1_Param2<<8)+ucTemp[3];
+			Motor1_Param3=ucTemp[4];
+			Motor1_Param3=(Motor1_Param3<<8)+ucTemp[5];
+			Motor1_Param4=ucTemp[6];
+			Motor1_Param4=(Motor1_Param4<<8)+ucTemp[7];
 		}
 	}
 
@@ -288,6 +306,7 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 	static int vPos=0;
 	char szScrollPos[100];
 	char szTemp[100];
+	unsigned char ucTemp[100];
 
 	switch(message)
 	{
@@ -334,7 +353,7 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 									  hInstance,
 									  NULL);
 			SetScrollRange(hwndScroll2,SB_CTL,0,1000,TRUE);
-			SetScrollPos(hwndScroll1,SB_CTL,Motor1_Param2,TRUE);
+			SetScrollPos(hwndScroll2,SB_CTL,Motor1_Param2,TRUE);
 
 			sprintf(szTemp,"触发延时:%d",Motor1_Param2);
 			hwndStaticText2 = CreateWindow(TEXT("static"),
@@ -363,7 +382,7 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 									  hInstance,
 									  NULL);
 			SetScrollRange(hwndScroll3,SB_CTL,0,1000,TRUE);
-			SetScrollPos(hwndScroll1,SB_CTL,Motor1_Param3,TRUE);
+			SetScrollPos(hwndScroll3,SB_CTL,Motor1_Param3,TRUE);
 			
 			sprintf(szTemp,"脉宽:%d",Motor1_Param3);
 			hwndStaticText3 = CreateWindow(TEXT("static"),
@@ -390,7 +409,7 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 									  hInstance,
 									  NULL);
 			SetScrollRange(hwndScroll4,SB_CTL,0,1000,TRUE);
-			SetScrollPos(hwndScroll1,SB_CTL,Motor1_Param4,TRUE);
+			SetScrollPos(hwndScroll4,SB_CTL,Motor1_Param4,TRUE);
 			
 			sprintf(szTemp,"间隔:%d",Motor1_Param4);
 			hwndStaticText4 = CreateWindow(TEXT("static"),
@@ -574,6 +593,7 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 			{
 				if(Com_Status&0x01)   ////关闭串口
 				{
+					CloseHandle(hCom);
 					EnableWindow(hwndCombo1,TRUE);
 					EnableWindow(hwndCombo2,TRUE);
 					SendMessage(hwndButton2,
@@ -586,30 +606,48 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 				}
 				else				///打开串口
 				{
-					EnableWindow(hwndCombo1,FALSE);
-					EnableWindow(hwndCombo2,FALSE);
-					SendMessage(hwndButton2,
-							WM_SETTEXT,
-							0,
-							(LPARAM)TEXT("关闭串口")
-							);
-					Com_Status|=0x01;
+					sprintf(szTemp,"COM%d",Com_Number+1);
+					if(Com_Baud==0)
+						z=4800;
+					if(Com_Baud==1)
+						z=9600;
+					if(Com_Baud==2)
+						z=19200;
+					if(Com_Baud==3)
+						z=115200;
+				
+					hCom=(HANDLE)Com_Open(szTemp,z);		
+					if(hCom==INVALID_HANDLE_VALUE)
+					{
+						MessageBox(hwnd,"串口已打开或不存在!!!","警告",0);	
+					}
+					else
+					{
+						EnableWindow(hwndCombo1,FALSE);
+						EnableWindow(hwndCombo2,FALSE);
+						SendMessage(hwndButton2,
+								WM_SETTEXT,
+								0,
+								(LPARAM)TEXT("关闭串口")
+								);
+						Com_Status|=0x01;
 					
-					SetFilePointer(hFile,4096,0,FILE_BEGIN);  ///存储串口号和波特率
-					WriteFile(hFile,
-						&Com_Number,
-						1,
-						&z,
-						NULL
-						);
-					SetFilePointer(hFile,4097,0,FILE_BEGIN);  ///存储串口号和波特率
-					WriteFile(hFile,
-						&Com_Baud,
-						1,
-						&z,
-						NULL
-						);
-					printf("打开串口\n");
+						SetFilePointer(hFile,4096,0,FILE_BEGIN);  ///存储串口号和波特率
+						WriteFile(hFile,
+							&Com_Number,
+							1,
+							&z,
+							NULL
+							);
+						SetFilePointer(hFile,4097,0,FILE_BEGIN);  ///存储串口号和波特率
+						WriteFile(hFile,
+							&Com_Baud,
+							1,
+							&z,
+							NULL
+							);
+						printf("打开串口\n");
+					}
 				}
 			}
 		return 0;
@@ -633,6 +671,11 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 
 		case WM_HSCROLL:    ////水平滚动条
 			printf("水平滚动条控件有动作\n");
+			ucTemp[0]=0xF0;
+			ucTemp[1]=0x01;
+			ucTemp[2]=0x00;
+			ucTemp[3]=0x00;
+			x=0;               ////标志是否需要发送
 			if(lParam==(int)hwndScroll1)
 			{
 				switch(LOWORD(wParam))
@@ -663,9 +706,12 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 				}
 				if(Motor1_Param1 != GetScrollPos(hwndScroll1,SB_CTL))
 				{
-					hdc=GetDC(hwnd);
-					GetClientRect(hwnd,&rect);
-					
+					//hdc=GetDC(hwnd);
+					//GetClientRect(hwnd,&rect);
+					x=1;
+					ucTemp[1]=0x01;
+					ucTemp[2]=Motor1_Param1>>8;
+					ucTemp[3]=Motor1_Param1%256;
 					SetScrollPos(hwndScroll1,SB_CTL,Motor1_Param1,TRUE);
 					sprintf(szTemp,"水平转速:%d",Motor1_Param1);
 					SendMessage(hwndStaticText1,
@@ -673,7 +719,7 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 							0,
 							(LPARAM)szTemp
 							);
-					hdc=GetDC(hwnd);
+					//hdc=GetDC(hwnd);
 					
 				}
 			}
@@ -707,9 +753,6 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 				}
 				if(Motor1_Param2 != GetScrollPos(hwndScroll2,SB_CTL))
 				{
-					hdc=GetDC(hwnd);
-					GetClientRect(hwnd,&rect);
-					
 					SetScrollPos(hwndScroll2,SB_CTL,Motor1_Param2,TRUE);
 					sprintf(szTemp,"触发延时:%d",Motor1_Param2);
 					SendMessage(hwndStaticText2,
@@ -717,8 +760,6 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 							0,
 							(LPARAM)szTemp
 							);
-					hdc=GetDC(hwnd);
-					
 				}
 			}
 			if(lParam==(int)hwndScroll3)
@@ -751,18 +792,13 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 				}
 				if(Motor1_Param3 != GetScrollPos(hwndScroll3,SB_CTL))
 				{
-					hdc=GetDC(hwnd);
-					GetClientRect(hwnd,&rect);
-					
 					SetScrollPos(hwndScroll3,SB_CTL,Motor1_Param3,TRUE);
-					sprintf(szTemp,"触发延时:%d",Motor1_Param3);
+					sprintf(szTemp,"脉宽:%d",Motor1_Param3);
 					SendMessage(hwndStaticText3,
 							WM_SETTEXT,
 							0,
 							(LPARAM)szTemp
 							);
-					hdc=GetDC(hwnd);
-					
 				}
 			}
 			if(lParam==(int)hwndScroll4)
@@ -795,19 +831,27 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 				}
 				if(Motor1_Param4 != GetScrollPos(hwndScroll4,SB_CTL))
 				{
-					hdc=GetDC(hwnd);
-					GetClientRect(hwnd,&rect);
-					
 					SetScrollPos(hwndScroll4,SB_CTL,Motor1_Param4,TRUE);
-					sprintf(szTemp,"触发延时:%d",Motor1_Param4);
+					sprintf(szTemp,"间隔:%d",Motor1_Param4);
 					SendMessage(hwndStaticText4,
 							WM_SETTEXT,
 							0,
 							(LPARAM)szTemp
 							);
-					hdc=GetDC(hwnd);
-					
 				}
+			}
+			if((x)&&(hCom!=INVALID_HANDLE_VALUE))
+			{
+				z=Crc_Check(ucTemp,4);
+				ucTemp[4]=z&0xff;
+				ucTemp[5]=z>>8;
+				printf("发送水平转速\n");
+				WriteFile(hCom,
+						ucTemp,
+						6,
+						&z,
+						NULL
+						);
 			}
 		return 0;
 
@@ -820,6 +864,22 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 					&z,
 					NULL
 					);
+			ucTemp[0]=Motor1_Param1/256;
+			ucTemp[1]=Motor1_Param1%256;
+			ucTemp[2]=Motor1_Param2/256;
+			ucTemp[3]=Motor1_Param2%256;
+			ucTemp[4]=Motor1_Param3/256;
+			ucTemp[5]=Motor1_Param3%256;
+			ucTemp[6]=Motor1_Param4/256;
+			ucTemp[7]=Motor1_Param4%256;
+			SetFilePointer(hFile,4098,0,FILE_BEGIN);
+			WriteFile(hFile,
+					ucTemp,
+					8,
+					&z,
+					NULL
+					);
+
 			printf("写入并关闭文件\n");
 			CloseHandle(hFile);  ///关闭文件
 			PostQuitMessage(0);
