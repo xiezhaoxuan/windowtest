@@ -594,6 +594,7 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 				if(Com_Status&0x01)   ////¹Ø±Õ´®¿Ú
 				{
 					CloseHandle(hCom);
+					hCom=INVALID_HANDLE_VALUE;
 					EnableWindow(hwndCombo1,TRUE);
 					EnableWindow(hwndCombo2,TRUE);
 					SendMessage(hwndButton2,

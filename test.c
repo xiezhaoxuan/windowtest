@@ -754,6 +754,10 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 				}
 				if(Motor1_Param2 != GetScrollPos(hwndScroll2,SB_CTL))
 				{
+					x=1;
+					ucTemp[1]=0x02;
+					ucTemp[2]=Motor1_Param2>>8;
+					ucTemp[3]=Motor1_Param2%256;
 					SetScrollPos(hwndScroll2,SB_CTL,Motor1_Param2,TRUE);
 					sprintf(szTemp,"´¥·¢ÑÓÊ±:%d",Motor1_Param2);
 					SendMessage(hwndStaticText2,
@@ -793,6 +797,10 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 				}
 				if(Motor1_Param3 != GetScrollPos(hwndScroll3,SB_CTL))
 				{
+					x=1;
+					ucTemp[1]=0x03;
+					ucTemp[2]=Motor1_Param3>>8;
+					ucTemp[3]=Motor1_Param3%256;
 					SetScrollPos(hwndScroll3,SB_CTL,Motor1_Param3,TRUE);
 					sprintf(szTemp,"Âö¿í:%d",Motor1_Param3);
 					SendMessage(hwndStaticText3,
@@ -832,6 +840,10 @@ LRESULT CALLBACK WndProc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam)
 				}
 				if(Motor1_Param4 != GetScrollPos(hwndScroll4,SB_CTL))
 				{
+					x=1;
+					ucTemp[1]=0x04;
+					ucTemp[2]=Motor1_Param4>>8;
+					ucTemp[3]=Motor1_Param4%256;
 					SetScrollPos(hwndScroll4,SB_CTL,Motor1_Param4,TRUE);
 					sprintf(szTemp,"¼ä¸ô:%d",Motor1_Param4);
 					SendMessage(hwndStaticText4,
